@@ -14,6 +14,14 @@ export function DriverAvailabilityForm({
 }) {
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-slate-700">
+        <p className="font-semibold text-slate-900">Quick start</p>
+        <p className="mt-1">
+          Sign in with your email and password, set your pickup location, time, and available seats for this Sunday,
+          then tap Save. You can update your availability until Saturday noon.
+        </p>
+      </div>
+
       <form action={upsertDriverAvailability} className="space-y-4">
         <div className="grid gap-4 sm:grid-cols-2">
           <label className="block">

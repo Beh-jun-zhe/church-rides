@@ -46,6 +46,14 @@ export function RiderRequestForm({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-sm text-slate-700">
+        <p className="font-semibold text-slate-900">Quick start</p>
+        <p className="mt-1">
+          Sign in with your email and password, fill your pickup details for this Sunday, then tap Save. If your time
+          slot is not listed yet, you can still submit and admin will coordinate your ride.
+        </p>
+      </div>
+
       {rider ? (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
           <div className="mb-2">
