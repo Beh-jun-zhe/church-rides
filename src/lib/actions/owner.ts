@@ -6,6 +6,7 @@ import { logAuditEvent } from "@/lib/audit";
 import { setFlashMessage } from "@/lib/flash";
 import { dispatchReminders } from "@/lib/reminders";
 import { getCurrentServiceSunday } from "@/lib/serviceWeek";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 function refreshEverything() {
   revalidatePath("/owner");
@@ -167,5 +168,62 @@ export async function sendRiderRemindersNow() {
   const tone = result.status === "failed" ? "error" : result.status === "skipped" ? "info" : "success";
   await setFlashMessage({ tone, text: `Rider reminders: ${result.message}` });
 
+  refreshEverything();
+}
+
+export async function deleteRegisteredUser(formData: FormData) {
+  const { profile: ownerProfile, supabase } = await requireOwner("/owner");
+  const profileId = formData.get("profile_id")?.toString();
+
+  if (!profileId) {
+    return;
+  }
+
+  if (profileId === ownerProfile.id) {
+    await setFlashMessage({ tone: "error", text: "Owner account cannot be deleted." });
+    refreshEverything();
+    return;
+  }
+
+  const { data: targetProfile, error: targetProfileError } = await supabase
+    .from("profiles")
+    .select("id,email,role")
+    .eq("id", profileId)
+    .maybeSingle();
+
+  if (targetProfileError || !targetProfile) {
+    await setFlashMessage({ tone: "error", text: targetProfileError?.message ?? "User not found." });
+    refreshEverything();
+    return;
+  }
+
+  if (targetProfile.role === "owner") {
+    await setFlashMessage({ tone: "error", text: "Owner account cannot be deleted." });
+    refreshEverything();
+    return;
+  }
+
+  const adminClient = createAdminClient();
+  const { error: deleteError } = await adminClient.auth.admin.deleteUser(profileId);
+
+  if (deleteError) {
+    await setFlashMessage({
+      tone: "error",
+      text: deleteError.message || "Unable to delete user right now.",
+    });
+    refreshEverything();
+    return;
+  }
+
+  await logAuditEvent(supabase, {
+    actor: { id: ownerProfile.id, email: ownerProfile.email },
+    action: "user_deleted",
+    entityType: "profiles",
+    entityId: profileId,
+    sundayDate: await getCurrentServiceSunday(supabase),
+    details: { targetEmail: targetProfile.email, targetRole: targetProfile.role },
+  });
+
+  await setFlashMessage({ tone: "success", text: `Deleted user ${targetProfile.email}.` });
   refreshEverything();
 }

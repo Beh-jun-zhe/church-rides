@@ -1,5 +1,6 @@
 import {
   approveAdminRequest,
+  deleteRegisteredUser,
   rejectAdminRequest,
   sendDriverRemindersNow,
   sendRiderRemindersNow,
@@ -149,21 +150,35 @@ export function OwnerControls({
               {user.role === "owner" ? (
                 <p className="text-sm font-semibold text-slate-500">Owner role is fixed.</p>
               ) : (
-                <form action={updateUserRole} className="flex flex-wrap items-center gap-2">
-                  <input type="hidden" name="profile_id" value={user.id} />
-                  <select name="role" defaultValue={user.role} className="rounded-lg border border-slate-300 px-3 py-2 text-sm">
-                    {roleOptions.map((role) => (
-                      <option key={role} value={role}>
-                        {role}
-                      </option>
-                    ))}
-                  </select>
-                  <ConfirmSubmitButton
-                    label="Update role"
-                    confirmText="Update this user's role?"
-                    className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                  />
-                </form>
+                <div className="flex flex-wrap items-center gap-2">
+                  <form action={updateUserRole} className="flex flex-wrap items-center gap-2">
+                    <input type="hidden" name="profile_id" value={user.id} />
+                    <select
+                      name="role"
+                      defaultValue={user.role}
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                    >
+                      {roleOptions.map((role) => (
+                        <option key={role} value={role}>
+                          {role}
+                        </option>
+                      ))}
+                    </select>
+                    <ConfirmSubmitButton
+                      label="Update role"
+                      confirmText="Update this user's role?"
+                      className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                    />
+                  </form>
+                  <form action={deleteRegisteredUser}>
+                    <input type="hidden" name="profile_id" value={user.id} />
+                    <ConfirmSubmitButton
+                      label="Delete user"
+                      confirmText={`Delete ${user.email}? This removes account access and all related records.`}
+                      className="rounded-lg border border-rose-300 bg-white px-3 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50"
+                    />
+                  </form>
+                </div>
               )}
             </article>
           ))}
