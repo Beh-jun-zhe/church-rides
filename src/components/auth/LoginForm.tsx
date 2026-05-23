@@ -13,6 +13,7 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
 
   async function handlePasswordSignIn(event: React.FormEvent) {
     event.preventDefault();
@@ -26,11 +27,16 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
     });
 
     if (signInError) {
-      setError(signInError.message);
+      const errorMessage =
+        signInError.message.toLowerCase().includes("email not confirmed")
+          ? "Please confirm your email first, then sign in with your password."
+          : signInError.message;
+      setError(errorMessage);
       setLoading(false);
       return;
     }
 
+    setAwaitingConfirmation(false);
     router.push(nextPath);
     router.refresh();
   }
@@ -53,12 +59,36 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
     }
 
     if (data.session) {
+      setAwaitingConfirmation(false);
       router.push(nextPath);
       router.refresh();
       return;
     }
 
-    setMessage("Account created. You can now sign in with your password.");
+    setAwaitingConfirmation(true);
+    setMessage("Account created. Check your email to confirm your account before signing in.");
+    setLoading(false);
+  }
+
+  async function handleResendConfirmation() {
+    if (!email) return;
+
+    setLoading(true);
+    setMessage(null);
+    setError(null);
+
+    const { error: resendError } = await supabase.auth.resend({
+      type: "signup",
+      email,
+    });
+
+    if (resendError) {
+      setError(resendError.message);
+      setLoading(false);
+      return;
+    }
+
+    setMessage("Confirmation email resent. Please check inbox and spam.");
     setLoading(false);
   }
 
@@ -114,6 +144,16 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
         >
           Create Account
         </button>
+        {awaitingConfirmation ? (
+          <button
+            type="button"
+            disabled={!email || loading}
+            onClick={handleResendConfirmation}
+            className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Resend confirmation email
+          </button>
+        ) : null}
       </div>
     </form>
   );

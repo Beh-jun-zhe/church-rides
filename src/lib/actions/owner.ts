@@ -115,10 +115,14 @@ export async function toggleScheduleLock(formData: FormData) {
   const { profile, supabase } = await requireOwner("/owner");
   const lock = formData.get("lock")?.toString() === "true";
 
-  const { error } = await supabase
-    .from("system_settings")
-    .update({ schedule_locked: lock, updated_by: profile.id })
-    .eq("id", true);
+  const { error } = await supabase.from("system_settings").upsert(
+    {
+      id: true,
+      schedule_locked: lock,
+      updated_by: profile.id,
+    },
+    { onConflict: "id" },
+  );
 
   if (error) {
     throw new Error(error.message);

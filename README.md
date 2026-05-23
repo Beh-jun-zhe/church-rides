@@ -21,7 +21,7 @@ A mobile-first full-stack ride coordination app for Sunday church rides from Nor
   - Submit/edit own request, choose only active time slots for selected location, see assignment status
 
 ## Core Features Implemented
-- Email auth (magic link + email/password)
+- Email/password auth (with optional confirmation email flow)
 - Protected routes: `/rider`, `/driver`, `/admin`, `/owner`
 - Owner recognition via `OWNER_EMAIL` in app + owner seeding in SQL trigger
 - Onboarding role selection with admin request flow (`pending` approval)
@@ -124,15 +124,22 @@ church-rides/
 ## Supabase Setup
 1. Create a Supabase project.
 2. In Auth settings:
-   - Enable email auth (magic link and/or password)
+   - Enable Email provider and password sign-in
+   - Optional: keep "Confirm email" enabled for account verification
    - Set site URL and redirect URL to include:
      - `http://localhost:3000/auth/callback`
      - your production callback URL
-3. Open `supabase-schema.sql` and replace:
-   - `OWNER_EMAIL_PLACEHOLDER` with the same email used in `OWNER_EMAIL`
+3. Open `supabase-schema.sql` and replace all `behjunzhe@gmail.com` values with your owner email.
 4. Run `supabase-schema.sql` in Supabase SQL editor.
 5. Then run `supabase/migrations/0002_weekly_service_cycle.sql` in Supabase SQL editor.
 6. Then run `supabase/migrations/0003_ops_and_history.sql` in Supabase SQL editor.
+7. Then run `supabase/migrations/0004_security_hardening.sql` in Supabase SQL editor.
+8. Confirm owner email config in DB:
+   ```sql
+   update public.system_settings
+   set owner_email = lower('your-owner-email@example.com')
+   where id = true;
+   ```
 
 ## Local Run
 1. Install dependencies:

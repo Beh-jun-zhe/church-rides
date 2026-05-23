@@ -55,14 +55,16 @@ create table if not exists public.ride_assignments (
 create table if not exists public.system_settings (
   id boolean primary key default true,
   schedule_locked boolean not null default false,
+  owner_email text,
   updated_by uuid references public.profiles(id) on delete set null,
   updated_at timestamptz not null default now(),
   check (id)
 );
 
-insert into public.system_settings (id, schedule_locked)
-values (true, false)
-on conflict (id) do nothing;
+insert into public.system_settings (id, schedule_locked, owner_email)
+values (true, false, lower('behjunzhe@gmail.com'))
+on conflict (id) do update
+set owner_email = coalesce(public.system_settings.owner_email, excluded.owner_email);
 
 create index if not exists idx_drivers_location_time on public.drivers (pickup_location, pickup_time) where active = true;
 create index if not exists idx_riders_status on public.riders (status);
@@ -94,6 +96,16 @@ create trigger set_riders_updated_at
 before update on public.riders
 for each row execute function public.set_updated_at();
 
+create or replace function public.configured_owner_email()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select lower(coalesce(nullif((select owner_email from public.system_settings where id = true), ''), ''));
+$$;
+
 create or replace function public.sync_profile_on_signup()
 returns trigger
 language plpgsql
@@ -101,12 +113,13 @@ security definer
 set search_path = public
 as $$
 declare
-  owner_email text := lower('behjunzhe@gmail.com');
+  owner_email text := public.configured_owner_email();
   normalized_email text := lower(coalesce(new.email, ''));
-  seeded_role text := case when normalized_email = owner_email then 'owner' else 'rider' end;
+  seeded_role text := case when owner_email <> '' and normalized_email = owner_email then 'owner' else 'rider' end;
+  seeded_admin_status text := case when seeded_role = 'owner' then 'approved' else 'not_requested' end;
 begin
   insert into public.profiles (id, email, role, admin_status)
-  values (new.id, coalesce(new.email, ''), seeded_role, 'not_requested')
+  values (new.id, coalesce(new.email, ''), seeded_role, seeded_admin_status)
   on conflict (id) do update set email = excluded.email;
 
   return new;
@@ -174,8 +187,19 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  owner_email text := public.configured_owner_email();
+  requester_email text := lower(coalesce(auth.jwt() ->> 'email', ''));
 begin
+  if old.role = 'owner' and not public.is_owner() then
+    raise exception 'Owner profile can only be updated by owner.';
+  end if;
+
   if public.is_owner() then
+    if old.role = 'owner' then
+      new.role := 'owner';
+      new.admin_status := 'approved';
+    end if;
     return new;
   end if;
 
@@ -184,12 +208,19 @@ begin
   end if;
 
   if new.role = 'owner' and old.role <> 'owner' then
-    if lower(new.email) <> lower('behjunzhe@gmail.com') then
+    if owner_email = '' or requester_email = '' or requester_email <> owner_email then
       raise exception 'Only configured owner account can hold owner role.';
     end if;
 
+    new.role := 'owner';
     new.admin_status := 'approved';
     return new;
+  end if;
+
+  if new.email is distinct from old.email then
+    if requester_email = '' or lower(new.email) <> requester_email then
+      raise exception 'Profile email must match authenticated account email.';
+    end if;
   end if;
 
   if new.admin_status in ('approved', 'rejected') and old.admin_status is distinct from new.admin_status then
