@@ -2,6 +2,7 @@ import { AppHeader } from "@/components/ui/AppHeader";
 import { RiderRequestForm } from "@/components/forms/RiderRequestForm";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { requireRider } from "@/lib/auth";
+import { switchSelfRole } from "@/lib/actions/onboarding";
 import { formatServiceSunday, getCurrentServiceSunday } from "@/lib/serviceWeek";
 import type { Driver, Rider } from "@/lib/types";
 
@@ -51,6 +52,18 @@ export default async function RiderPage() {
         title="Rider Dashboard"
         subtitle={`For ${serviceSundayLabel}. Submit your pickup request and track assignment progress.`}
       />
+
+      <SectionCard title="Need Driver View Instead?" description="If you selected rider by mistake, switch instantly.">
+        <form action={switchSelfRole}>
+          <input type="hidden" name="target_role" value="driver" />
+          <button
+            type="submit"
+            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Switch to Driver Role
+          </button>
+        </form>
+      </SectionCard>
 
       <SectionCard title="Ride request" description="Pickup options update based on active driver availability.">
         <RiderRequestForm

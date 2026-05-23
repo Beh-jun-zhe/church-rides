@@ -3,6 +3,7 @@ import { DriverAvailabilityForm } from "@/components/forms/DriverAvailabilityFor
 import { SectionCard } from "@/components/ui/SectionCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { requireDriver } from "@/lib/auth";
+import { switchSelfRole } from "@/lib/actions/onboarding";
 import { formatServiceSunday, getCurrentServiceSunday } from "@/lib/serviceWeek";
 import type { Driver, Rider } from "@/lib/types";
 import { formatNullable } from "@/lib/utils";
@@ -39,6 +40,18 @@ export default async function DriverPage() {
         title="Driver Dashboard"
         subtitle={`For ${serviceSundayLabel}. Share your ride availability and view assigned riders.`}
       />
+
+      <SectionCard title="Need Rider View Instead?" description="If you selected driver by mistake, switch instantly.">
+        <form action={switchSelfRole}>
+          <input type="hidden" name="target_role" value="rider" />
+          <button
+            type="submit"
+            className="rounded-xl border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Switch to Rider Role
+          </button>
+        </form>
+      </SectionCard>
 
       <SectionCard title="Driver availability" description="Keep your pickup location, time, and seat count updated.">
         <DriverAvailabilityForm
