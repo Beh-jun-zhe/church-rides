@@ -14,36 +14,6 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const redirectTo = useMemo(() => {
-    if (typeof window === "undefined") return "";
-    const url = new URL("/auth/callback", window.location.origin);
-    url.searchParams.set("next", nextPath);
-    return url.toString();
-  }, [nextPath]);
-
-  async function handleMagicLink(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage(null);
-    setError(null);
-
-    const { error: signInError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: redirectTo,
-      },
-    });
-
-    if (signInError) {
-      setError(signInError.message);
-      setLoading(false);
-      return;
-    }
-
-    setMessage("Magic link sent. Please check your inbox to continue.");
-    setLoading(false);
-  }
-
   async function handlePasswordSignIn(event: React.FormEvent) {
     event.preventDefault();
     setLoading(true);
@@ -71,12 +41,9 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
     setMessage(null);
     setError(null);
 
-    const { error: signUpError } = await supabase.auth.signUp({
+    const { data, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        emailRedirectTo: redirectTo,
-      },
     });
 
     if (signUpError) {
@@ -85,7 +52,13 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
       return;
     }
 
-    setMessage("Account created. Please verify your email and then sign in.");
+    if (data.session) {
+      router.push(nextPath);
+      router.refresh();
+      return;
+    }
+
+    setMessage("Account created. You can now sign in with your password.");
     setLoading(false);
   }
 
@@ -108,11 +81,12 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
 
       <div>
         <label htmlFor="password" className="mb-1 block text-sm font-semibold text-slate-700">
-          Password (optional for password login)
+          Password
         </label>
         <input
           id="password"
           type="password"
+          required
           value={password}
           onChange={(event) => setPassword(event.target.value)}
           className="w-full rounded-xl border border-slate-300 px-3 py-2 text-slate-900 outline-none ring-rose-500 transition focus:ring"
@@ -126,27 +100,19 @@ export function LoginForm({ nextPath = "/onboarding" }: { nextPath?: string }) {
       <div className="grid gap-2">
         <button
           type="button"
-          disabled={!email || loading}
-          onClick={handleMagicLink}
-          className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Send Magic Link
-        </button>
-        <button
-          type="button"
           disabled={!email || !password || loading}
           onClick={handlePasswordSignIn}
-          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-rose-500 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Sign In with Password
+          Sign In
         </button>
         <button
           type="button"
           disabled={!email || !password || loading}
           onClick={handlePasswordSignup}
-          className="rounded-xl border border-slate-300 bg-slate-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-700 disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-slate-100 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          Create Account with Password
+          Create Account
         </button>
       </div>
     </form>

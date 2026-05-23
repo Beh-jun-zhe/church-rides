@@ -15,7 +15,7 @@ export default async function LoginPage({
         <p className="text-sm font-semibold uppercase tracking-wide text-rose-600">{APP_NAME}</p>
         <h1 className="mt-1 text-3xl font-bold text-slate-900">Sign in to continue</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Use email magic link or email/password to access your rider, driver, admin, or owner dashboard.
+          Use your email and password to sign in or create your account, then continue to your role dashboard.
         </p>
       </section>
       <LoginForm nextPath={nextPath} />
